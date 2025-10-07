@@ -1,0 +1,22 @@
+### 
+POST http://localhost:8000/register
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+Content-Type: text/plain
+
+Ali Banni
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="face.jpeg"
+Content-Type: image/jpeg
+
+< ./face.jpeg
+--WebAppBoundary--
+
+<> 2025-08-09T131745.200.json
+
+
+###
+GET http://192.168.1.2:8000
+
