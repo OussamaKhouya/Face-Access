@@ -4,7 +4,7 @@ import {ActivityIndicator, Pressable, StyleSheet, Text, View} from "react-native
 import {useCameraPermissions} from "expo-camera";
 import {Camera, useCameraDevice} from "react-native-vision-camera";
 
-const PhotoProfile = () => {
+const FaceProfileScreen = () => {
 
     const [hasPermission, requestPermission] = useCameraPermissions();
     const device = useCameraDevice('back', {physicalDevices: ['ultra-wide-angle-camera', 'wide-angle-camera', 'telephoto-camera']});
@@ -71,4 +71,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default PhotoProfile;
+export default FaceProfileScreen;

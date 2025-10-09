@@ -1,5 +1,5 @@
 ### 
-POST http://localhost:8000/register
+POST http://192.168.43.140:8000/register
 Content-Type: multipart/form-data; boundary=WebAppBoundary
 
 --WebAppBoundary
@@ -18,5 +18,5 @@ Content-Type: image/jpeg
 
 
 ###
-GET http://192.168.1.2:8000
+GET http://192.168.43.140:8000
 

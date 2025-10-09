@@ -20,8 +20,13 @@ FaceAccess is a mobile-first facial recognition system for secure access managem
 ### Run Project
 
 ```bash
+# React Native
 npm install
-npm run dev
+npx expo start
+npx expo run:android --device
+
+# FastAPi
+uvicorn server:app --reload --host 0.0.0.0 --port 8000
 ```
 
 

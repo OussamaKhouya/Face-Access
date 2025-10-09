@@ -8,6 +8,7 @@ import {
     Dimensions,
     SafeAreaView,
 } from 'react-native';
+import { router } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
@@ -46,6 +47,8 @@ const WelcomeLockScreen = () => {
     const handleOKPress = () => {
         // Handle OK button press - navigate to admin creation or next screen
         console.log('OK button pressed');
+        router.push('/menu-screen');
+
     };
 
     const handlePhonePress = () => {
