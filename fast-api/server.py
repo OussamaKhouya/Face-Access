@@ -1,27 +1,28 @@
 # server.py
 import os
-from typing import List
+from typing import List, Optional
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from fastapi import FastAPI, Form, Depends, HTTPException
+from fastapi import FastAPI, Form, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
-from database import SessionLocal  # Your DB session factory
+from sqlalchemy.sql.functions import user
+
+from cors_config import setup_cors
 from models import User
 import hashlib
-
+from face_routes import router as face_router  # import your router
+from database import get_db
+import cv2
+import logging
+from fastapi.responses import FileResponse
 app = FastAPI()
 
-# Create users directory
-os.makedirs("faces", exist_ok=True)
+setup_cors(app)
+app.include_router(face_router)  # include the face profile routes
 
 # Dependency to get DB session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+
 
 def str_to_bool(v: str):
     return v.lower() == 'true'
@@ -79,15 +80,56 @@ async def register_user(user: UserRegister, db: Session = Depends(get_db)):
         "accessControlRole": new_user.accessControlRole,
     }}
 
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    role: Optional[str] = None
+    fingerprint: Optional[str] = None
+    face: Optional[str] = None
+    card: Optional[str] = None
+    password: Optional[str] = None
+    profilePhoto: Optional[str] = None
+    accessControlRole: Optional[str] = None
 
+@app.post("/updateUser")
+async def update_user(user_id: str, user_update: UserUpdate, db: Session = Depends(get_db)):
+    # Find the existing user
+    existing_user = db.query(User).filter(User.userId == user_id).first()
+    if not existing_user:
+        raise HTTPException(status_code=404, detail="User not found")
 
-@app.post("/addUser2")
-async def register_user(user: UserRegister):
-    # Here you would add your logic to save the user to a database
-    # For example, check if userId exists, hash password, store user data, etc.
-    # If successful:
-    print(user)
-    return {"message": "User registered successfully!", "user": user}
+    # Update fields only if they are provided (for PATCH-style behavior)
+    if user_update.name is not None:
+        existing_user.name = user_update.name
+    if user_update.role is not None:
+        existing_user.role = user_update.role
+    if user_update.fingerprint is not None:
+        existing_user.fingerprint = user_update.fingerprint
+    if user_update.face is not None:
+        existing_user.face = user_update.face
+    if user_update.card is not None:
+        existing_user.card = user_update.card
+    if user_update.password is not None:
+        # Hash the updated password
+        existing_user.password = hashlib.sha256(user_update.password.encode()).hexdigest()
+    if user_update.profilePhoto is not None:
+        existing_user.profilePhoto = user_update.profilePhoto
+    if user_update.accessControlRole is not None:
+        existing_user.accessControlRole = user_update.accessControlRole
+
+    db.commit()
+    db.refresh(existing_user)
+
+    return {"message": "User updated successfully!", "user": {
+        "userId": existing_user.userId,
+        "name": existing_user.name,
+        "role": existing_user.role,
+        "fingerprint": existing_user.fingerprint,
+        "face": existing_user.face,
+        "card": existing_user.card,
+        "profilePhoto": existing_user.profilePhoto,
+        "accessControlRole": existing_user.accessControlRole,
+    }}
+
 
 # Pydantic model for response (exclude password)
 class UserOut(BaseModel):
@@ -101,9 +143,17 @@ class UserOut(BaseModel):
     accessControlRole: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+@app.get("/users/{user_id}")
+def get_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.userId == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
 @app.get("/users", response_model=List[UserOut])
 def get_users(db: Session = Depends(get_db)):
     users = db.query(User).all()
     return users
+

@@ -3,27 +3,31 @@ import {Alert, Button, StyleSheet, Switch, Text, TextInput, View} from 'react-na
 import Header from "@/components/Header";
 import {Picker} from '@react-native-picker/picker';
 import {router} from "expo-router";
-import {API_URL} from "@/constants/Api";
+import {BACKEND_URL} from "@/constants/Api";
 
-export default function EditUserFormScreen() {
+export default function NewUserFormScreen() {
     const [userId, setUserId] = useState('1');
-    const [name, setName] = useState('XXX');
+    const [name, setName] = useState('');
     const [role, setRole] = useState('Normal User');
     const [fingerprint, setFingerprint] = useState(false);
     const [face, setFace] = useState(false);
     const [card, setCard] = useState(false);
-    const [password, setPassword] = useState('XXX');
+    const [password, setPassword] = useState('');
     const [profilePhoto, setProfilePhoto] = useState(false);
-    const [accessControlRole, setAccessControlRole] = useState('XX');
+    const [accessControlRole, setAccessControlRole] = useState('');
 
     const takeProfilePhoto = () => {
-        if (!profilePhoto) router.push("face-profile-screen" as any);
+        if (!profilePhoto) {
+            router.push({
+                pathname: "/face-profile-screen", params: {uId: String(userId)},
+            });
+        }
     }
 
     const testApi = async () => {
 
         try {
-            const response = await fetch(API_URL);
+            const response = await fetch(BACKEND_URL);
             const result = await response.json();
             console.log('API response:', result);
         } catch (error) {
@@ -46,7 +50,7 @@ export default function EditUserFormScreen() {
 
         try {
 
-            const response = await fetch(API_URL + "/addUser", {
+            const response = await fetch(BACKEND_URL + "/addUser", {
                 method: 'POST',
                 body: formData,
             });
@@ -72,7 +76,7 @@ export default function EditUserFormScreen() {
         console.log(userData)
 
         try {
-            const response = await fetch(API_URL + "/addUser", {
+            const response = await fetch(BACKEND_URL + "/addUser", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData),
@@ -103,7 +107,7 @@ export default function EditUserFormScreen() {
         formData.append('accessControlRole', accessControlRole);
 
         try {
-            const response = await fetch(API_URL + "/addUser", {
+            const response = await fetch(BACKEND_URL + "/addUser", {
                 method: 'POST',
                 body: formData,
             });

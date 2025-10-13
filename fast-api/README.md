@@ -3,7 +3,8 @@
 1. install 
 
     ```
-   pip install fastapi uvicorn python-multipart
+    pip freeze > requirements.txt
+    pip install -r requirements.txt
    ```
 2. Start Server
 

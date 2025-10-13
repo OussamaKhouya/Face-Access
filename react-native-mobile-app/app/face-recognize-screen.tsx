@@ -2,14 +2,14 @@ import { Stack } from "expo-router";
 import React, { useEffect, useRef } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { useCameraPermissions } from "expo-camera";
-import { Camera, useCameraDevice } from "react-native-vision-camera";
+// import { Camera, useCameraDevice } from "react-native-vision-camera";
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 
 const VerificationScreen = () => {
     const [hasPermission, requestPermission] = useCameraPermissions();
-    const device = useCameraDevice('back', {
+  /*  const device = useCameraDevice('back', {
         physicalDevices: ['ultra-wide-angle-camera', 'wide-angle-camera', 'telephoto-camera']
-    });
+    });*/
     const camera = useRef(null);
 
     useEffect(() => {
@@ -22,9 +22,9 @@ const VerificationScreen = () => {
         return <ActivityIndicator />;
     }
 
-    if (!device) {
+   /* if (!device) {
         return <Text>Camera Device Not Found</Text>;
-    }
+    }*/
 
     return (
         <View style={styles.container}>
@@ -33,13 +33,13 @@ const VerificationScreen = () => {
 
 
             {/* Camera Preview */}
-            <Camera
+          {/*  <Camera
                 ref={camera}
                 style={styles.camera}
                 device={device}
                 isActive={true}
                 photo={true}
-            />
+            />*/}
 
             {/* Verification Overlay */}
             <View style={styles.overlay}>

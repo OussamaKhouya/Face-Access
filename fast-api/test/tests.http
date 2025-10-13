@@ -1,12 +1,17 @@
 ### 
-POST http://192.168.43.140:8000/register
+POST http://localhost:8000/face/profile
 Content-Type: multipart/form-data; boundary=WebAppBoundary
 
 --WebAppBoundary
-Content-Disposition: form-data; name="name"
+Content-Disposition: form-data; name="user_id"
 Content-Type: text/plain
 
-Ali Banni
+2
+--WebAppBoundary
+Content-Disposition: form-data; name="profile_photo"
+Content-Type: text/plain
+
+true
 --WebAppBoundary
 Content-Disposition: form-data; name="file"; filename="face.jpeg"
 Content-Type: image/jpeg
@@ -14,9 +19,51 @@ Content-Type: image/jpeg
 < ./face.jpeg
 --WebAppBoundary--
 
-<> 2025-08-09T131745.200.json
 
 
 ###
-GET http://192.168.43.140:8000
+POST http://localhost:8000/face/profile?user_id=1&profile_photo=true
+Content-Type: multipart/form-data; charset=utf-8
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="profile.jpg"
+Content-Type: image/jpeg
+
+< ./face.jpeg
+--boundary--
+
+###
+POST http://localhost:8000/face/profile?user_id=2&profile_photo=false
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="face.jpeg"
+Content-Type: image/jpeg
+
+< ./face.jpeg
+--WebAppBoundary--
+
+
+
+
+###
+POST http://127.0.0.1:8000/face/profile
+Content-Type: multipart/form-data; boundary=boundary123
+
+--boundary123
+Content-Disposition: form-data; name="user_id"
+
+1
+--boundary123
+Content-Disposition: form-data; name="profile_photo"
+
+true
+--boundary123
+Content-Disposition: form-data; name="file"; filename="test_image.jpg"
+Content-Type: image/jpeg
+
+< ./will.png
+--boundary123--
+
+
 

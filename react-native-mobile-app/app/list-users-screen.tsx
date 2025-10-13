@@ -1,9 +1,9 @@
 import React, {useEffect, useState} from 'react';
-import {Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
+import {ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
 import {Feather, MaterialCommunityIcons, MaterialIcons} from '@expo/vector-icons';
 import Header from "@/components/Header";
-import {API_URL} from "@/constants/Api";
-
+import {BACKEND_URL} from "@/constants/Api";
+import { router } from "expo-router";
 interface User {
     userId: number;
     name: string;
@@ -15,7 +15,7 @@ interface User {
 
 const fetchUsers = async (): Promise<User[]> => {
     try {
-        const response = await fetch(API_URL + "/users");
+        const response = await fetch(BACKEND_URL + "/users");
         if (!response.ok) {
             throw new Error('Failed to fetch users');
         }
@@ -48,30 +48,43 @@ const UserRow = ({user, onPress}: { user: User, onPress: any }) => (
 export default function UserListScreen() {
 
     const [users, setUsers] = useState<User[]>([]);
+    const [loading, setLoading] = useState(true);
+
 
     useEffect(() => {
-        fetchUsers().then(setUsers);
+        fetchUsers()
+            .then(setUsers)
+            .finally(() => setLoading(false));
     }, []);
-
     const handleUserPress = (user: User) => {
-        Alert.alert('User Clicked', `You selected ${user.name}`);
-        // Navigation logic or other action can go here
+        // Alert.alert('User Clicked', `You selected ${user.name}`);
+        router.push({
+            pathname: '/user-edit-screen',
+            params: { uId: user.userId },
+        });
     };
 
     return (<View style={styles.container}>
             {/* Header */}
             <Header title="All Users"/>
+        {loading ? (
+            <View style={{ flex: 1, justifyContent: 'flex-start', alignItems: 'center', paddingTop:100 }}>
+                <ActivityIndicator size="large" color="#007AFF"/>
+            </View>
+        ) : users.length === 0 ? (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <Text>No users found</Text>
+            </View>
+        ) : (
             <FlatList
                 data={users}
                 renderItem={({item}) => <UserRow user={item} onPress={handleUserPress}/>}
                 keyExtractor={item => `${item.userId}`}
                 style={{flex: 1}}
             />
-            {/* Search */}
-            <View style={styles.searchBar}>
-                <TextInput style={styles.searchInput} editable={false}/>
-                <Feather name="search" size={22} color="#888" style={styles.searchIcon}/>
-            </View>
+
+
+        )}
         </View>);
 }
 
