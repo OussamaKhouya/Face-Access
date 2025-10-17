@@ -59,7 +59,7 @@ export default function UserListScreen() {
     const handleUserPress = (user: User) => {
         // Alert.alert('User Clicked', `You selected ${user.name}`);
         router.push({
-            pathname: '/user-edit-screen',
+            pathname: '/user-actions-screen',
             params: { uId: user.userId },
         });
     };

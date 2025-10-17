@@ -8,7 +8,8 @@ import {
     Dimensions,
     SafeAreaView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; // Using Expo vector icons
+import { Ionicons } from '@expo/vector-icons';
+import {router} from "expo-router"; // Using Expo vector icons
 
 const { width, height } = Dimensions.get('window');
 
@@ -30,6 +31,10 @@ const WelcomeLockScreen = () => {
             minute: '2-digit'
         });
     };
+
+    const handleAccess = () => {
+        router.push('/access-screen');
+    }
 
     const formatDate = (date: Date) => {
         const year = date.getFullYear();
@@ -106,7 +111,7 @@ const WelcomeLockScreen = () => {
                 <TouchableOpacity style={styles.bottomButton} onPress={() => console.log('Keyboard pressed')}>
                     <Ionicons name="keypad" size={24} color="#666" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.bottomButton} onPress={() => console.log('Menu pressed')}>
+                <TouchableOpacity style={styles.bottomButton} onPress={handleAccess}>
                     <Ionicons name="menu" size={24} color="#666" />
                 </TouchableOpacity>
             </View>

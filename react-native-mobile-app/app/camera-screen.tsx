@@ -1,7 +1,7 @@
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import React, {useRef, useState} from 'react';
-import {Button, Image, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-
+import React, { useRef, useState } from 'react';
+import { Button, Image, StyleSheet, Text, TouchableOpacity, View , ImageBackground} from 'react-native';
+import * as FileSystem from 'expo-file-system';
 export default function CameraScreen() {
     const [facing, setFacing] = useState<CameraType>('back');
     const [permission, requestPermission] = useCameraPermissions();
@@ -18,21 +18,64 @@ export default function CameraScreen() {
         return (
             <View style={styles.container}>
                 <Text style={styles.message}>We need your permission to show the camera</Text>
-                <Button onPress={requestPermission} title="grant permission" />
+                <Button onPress={requestPermission} title="Grant permission" />
             </View>
         );
     }
-
-    async function toggleCameraFacing() {
+    async function takePhoto2() {
         const photo = await ref.current?.takePictureAsync();
 
-        if (!photo?.uri) {
-            console.log("No Photo URI available");
+        if (!photo?.uri) return;
+
+        const newPath = `${FileSystem.documentDirectory}photo_${Date.now()}.jpg`;
+        await FileSystem.moveAsync({
+            from: photo.uri,
+            to: newPath,
+        });
+
+        setUri(newPath);
+        console.log("Saved photo at:", newPath);
+    }
+    async function takePhoto1() {
+        const photo = await ref.current?.takePictureAsync({
+            base64: true,     // 👈 capture as base64
+            quality: 1,     // optional compression
+            skipProcessing: true,
+        });
+
+        if (!photo?.base64) {
+            console.log("No base64 data available");
             return;
         }
 
-        setUri(photo.uri);
-        console.log("Photo URI:", photo.uri);
+        // Create data URI for preview or upload
+        const base64Image = `data:image/jpeg;base64,${photo.base64}`;
+
+        setUri(base64Image);
+
+        console.log("Captured photo (base64 length):", photo.base64.length);
+    }
+
+    async function takePhoto() {
+        const photo = await ref.current?.takePictureAsync({
+            base64: true,
+            quality: 0.8,
+            skipProcessing: true,
+        });
+
+        if (!photo?.base64) return;
+
+        const filePath = `${FileSystem.cacheDirectory}temp.jpg`;
+        await FileSystem.writeAsStringAsync(filePath, photo.base64, {
+            encoding: FileSystem.EncodingType.Base64,
+        });
+
+        setUri(filePath); // use file URI instead of base64
+        console.log(
+            "Photo saved to cache with base64 length:",
+        )
+        console.log(photo.base64.slice(0, 100));
+
     }
 
     return (
@@ -41,16 +84,16 @@ export default function CameraScreen() {
                 ref={ref}
                 style={styles.camera}
                 facing={facing}
-
             />
             <View style={styles.buttonContainer}>
-                <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
-                    <Text style={styles.text}>Flip Camera</Text>
+                <TouchableOpacity style={styles.button} onPress={takePhoto}>
+                    <Text style={styles.text}>Take Photo</Text>
                 </TouchableOpacity>
             </View>
+
             {uri && (
                 <View style={styles.previewContainer}>
-                    <Image source={{ uri }} style={styles.previewImage} />
+                    <ImageBackground source={{ uri }} style={styles.previewImage} />
                 </View>
             )}
         </View>
@@ -87,19 +130,20 @@ const styles = StyleSheet.create({
         color: 'white',
     },
     previewContainer: {
-        position: "absolute",
+        position: 'absolute',
         bottom: 140,
         right: 20,
         borderWidth: 2,
-        borderColor: "white",
+        borderColor: 'white',
         borderRadius: 8,
-        overflow: "hidden",
+        overflow: 'hidden',
         width: 100,
         height: 150,
     },
     previewImage: {
-        width: "100%",
-        height: "100%",
-        resizeMode: "cover",
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
+        backgroundColor: '#fff', // just for debugging
     },
 });

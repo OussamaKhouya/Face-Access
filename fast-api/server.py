@@ -1,36 +1,27 @@
-# server.py
-import os
+import hashlib
 from typing import List, Optional
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-
-from fastapi import FastAPI, Form, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
-from sqlalchemy.sql.functions import user
-
 from cors_config import setup_cors
-from models import User
-import hashlib
-from face_routes import router as face_router  # import your router
 from database import get_db
-import cv2
-import logging
-from fastapi.responses import FileResponse
+from face_routes import router as face_router  # import your router
+from models import User
+from sqlalchemy import func
 app = FastAPI()
 
 setup_cors(app)
-app.include_router(face_router)  # include the face profile routes
+app.include_router(face_router)  # face related routes
 
-# Dependency to get DB session
-
-
-def str_to_bool(v: str):
-    return v.lower() == 'true'
 
 
 @app.get("/")
 def index():
     return JSONResponse({"message": "FaceAccess Api"})
+
+
 # Define the request body schema (model)
 class UserRegister(BaseModel):
     userId: str
@@ -42,6 +33,16 @@ class UserRegister(BaseModel):
     password: str
     profilePhoto: bool
     accessControlRole: str
+
+
+@app.get("/users/latest-id")
+def get_latest_user_id_route(db: Session = Depends(get_db)):
+    latest_id = db.query(func.max(User.userId)).scalar()
+    print(latest_id)
+
+    if latest_id is None:
+        raise HTTPException(status_code=404, detail="No users")
+    return {"latestUserId": latest_id}
 
 @app.post("/addUser")
 async def register_user(user: UserRegister, db: Session = Depends(get_db)):
@@ -80,6 +81,7 @@ async def register_user(user: UserRegister, db: Session = Depends(get_db)):
         "accessControlRole": new_user.accessControlRole,
     }}
 
+
 class UserUpdate(BaseModel):
     name: Optional[str] = None
     role: Optional[str] = None
@@ -89,6 +91,7 @@ class UserUpdate(BaseModel):
     password: Optional[str] = None
     profilePhoto: Optional[str] = None
     accessControlRole: Optional[str] = None
+
 
 @app.post("/updateUser")
 async def update_user(user_id: str, user_update: UserUpdate, db: Session = Depends(get_db)):
@@ -140,10 +143,11 @@ class UserOut(BaseModel):
     face: bool
     card: bool
     profilePhoto: bool
-    accessControlRole: str
+    accessControlRole: Optional[str] = None
 
     class Config:
         from_attributes = True
+
 
 @app.get("/users/{user_id}")
 def get_user(user_id: int, db: Session = Depends(get_db)):
@@ -152,8 +156,21 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
+
 @app.get("/users", response_model=List[UserOut])
 def get_users(db: Session = Depends(get_db)):
     users = db.query(User).all()
     return users
+
+
+
+@app.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.userId == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.delete(user)
+    db.commit()
+    # Return an empty 204 response (no content)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 

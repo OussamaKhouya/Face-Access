@@ -1,5 +1,5 @@
 ### 
-POST http://localhost:8000/face/profile
+POST http://localhost:8001/face/profile
 Content-Type: multipart/form-data; boundary=WebAppBoundary
 
 --WebAppBoundary
@@ -22,7 +22,7 @@ Content-Type: image/jpeg
 
 
 ###
-POST http://localhost:8000/face/profile?user_id=1&profile_photo=true
+POST http://localhost:8001/face/profile?user_id=1&profile_photo=true
 Content-Type: multipart/form-data; charset=utf-8
 
 --boundary
@@ -33,7 +33,7 @@ Content-Type: image/jpeg
 --boundary--
 
 ###
-POST http://localhost:8000/face/profile?user_id=2&profile_photo=false
+POST http://localhost:8001/face/profile?user_id=2&profile_photo=false
 Content-Type: multipart/form-data; boundary=WebAppBoundary
 
 --WebAppBoundary
@@ -47,23 +47,30 @@ Content-Type: image/jpeg
 
 
 ###
-POST http://127.0.0.1:8000/face/profile
+POST http://127.0.0.1:8001/face/enroll
 Content-Type: multipart/form-data; boundary=boundary123
 
 --boundary123
 Content-Disposition: form-data; name="user_id"
 
-1
---boundary123
-Content-Disposition: form-data; name="profile_photo"
+2
 
-true
 --boundary123
 Content-Disposition: form-data; name="file"; filename="test_image.jpg"
 Content-Type: image/jpeg
 
-< ./will.png
+< ../insightface/images/Morgan_Freeman/freeman_1.jpeg
 --boundary123--
 
 
+###
+POST http://127.0.0.1:8001/face/recognize
+Content-Type: multipart/form-data; boundary=boundary123
 
+--boundary123
+Content-Disposition: form-data; name="file"; filename="test_image.jpg"
+Content-Type: image/jpeg
+
+< ../insightface/images/Morgan_Freeman/freeman_6.jpeg
+--boundary123--
+###

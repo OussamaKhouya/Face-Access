@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean
+from sqlalchemy import Column, String, Boolean, JSON
 from database import Base
 
 class User(Base):
@@ -13,3 +13,6 @@ class User(Base):
     password = Column(String)
     profilePhoto = Column(Boolean)
     accessControlRole = Column(String)
+
+    # Add this for face embeddings
+    face_embedding = Column(JSON, nullable=True)  # store embedding as JSON list

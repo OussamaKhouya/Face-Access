@@ -13,6 +13,7 @@ const EnrollFaceScreen = () => {
     const ref = useRef<CameraView>(null);
     const [facing, setFacing] = useState<CameraType>('front');
     const [uri, setUri] = useState<string | null>(null);
+    const [score, setScore] = useState<string | null>("_");
 
     if (!permission) {
         // Camera permissions are still loading.
@@ -102,7 +103,7 @@ const EnrollFaceScreen = () => {
             type: "image/jpeg",
             name: "photo.jpg",
         } as any);
-        formData.append("user_id", String(params["uId"] || "1"));
+        formData.append("user_id", String(params["uId"] || "3"));
         // 'profile_photo' not needed for enroll endpoint, remove or adjust accordingly
 
         console.log("Taking picture and uploading...");
@@ -124,11 +125,12 @@ const EnrollFaceScreen = () => {
             console.log("Enroll result:", result);
 
             // Example: show clarity and message
-            alert(`Enroll Status: ${result.enrolled ? "Success" : "Failed"}\nClarity: ${result.clarity.toFixed(2)}%\nMessage: ${result.message}`);
+            alert(`Enroll Status: ${result.enrolled ? "Success" : "Failed"}\nScore: ${result.score}%\nMessage: ${result.message}`);
+            setScore(result.score+"%");
 
             // Optional: navigate back or update UI based on enrollment
             if (result.enrolled) {
-                router.back();
+                 router.back();
             }
 
         } catch (err) {
@@ -149,7 +151,7 @@ const EnrollFaceScreen = () => {
         {/* Bottom overlay for info */}
         <View style={styles.infoBox}>
 
-            <Text style={styles.imgQuality}>Image Quality: _</Text>
+            <Text style={styles.imgQuality}>Image Quality: {score}</Text>
             <Text style={styles.imgQuality}>Note:</Text>
             <View style={{marginTop: 6}}>
                 <View style={styles.notesRow}>
@@ -170,11 +172,10 @@ const EnrollFaceScreen = () => {
                 <View style={styles.statusBar}/>
             </View>
             <View style={styles.shutterContainer}>
-                {uri ? (<View style={styles.previewContainer}>
+                <Pressable onPress={()=>router.back()}>
+                    <FontAwesome6 name="arrow-left" size={32} color="white"/>
+                </Pressable>
 
-                        <Image source={{uri}} style={styles.previewImage}/>
-
-                    </View>) : <Pressable></Pressable>}
                 <Pressable onPress={takePicture}>
                     {({pressed}) => (<View
                         style={[styles.shutterBtn, {
@@ -188,9 +189,12 @@ const EnrollFaceScreen = () => {
                         />
                     </View>)}
                 </Pressable>
-                <Pressable onPress={toggleFacing}>
-                    <FontAwesome6 name="rotate-left" size={32} color="white"/>
-                </Pressable>
+
+                {uri ? (<View style={styles.previewContainer}>
+
+                    <Image source={{uri}} style={styles.previewImage}/>
+
+                </View>) : <Pressable></Pressable>}
             </View>
         </View>
 

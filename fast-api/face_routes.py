@@ -1,61 +1,36 @@
-# face_routes.py
+import logging
 import os
+from typing import Tuple
 import cv2
 import numpy as np
-
-from fastapi import APIRouter, Form, File, UploadFile, Depends, HTTPException
+from fastapi import APIRouter, Form, File, UploadFile, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from database import get_db  # adjust import for your db session
-from fastapi.responses import JSONResponse
-from models import User      # adjust import for your User model
-import logging
+
+from database import get_db  #   for db session
+from models import User  #   for User model
+from fastapi import UploadFile, File, Form, HTTPException, Depends
+from sqlalchemy.orm import Session
+from insightface.app import FaceAnalysis
+from io import BytesIO
+from PIL import Image
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
 
-
-# # Save received photo as user_id.jpg in profiles folder
-# @router.post("/face/profile0")
-# async def update_user_profile_photo(
-#         user_id: str = Form(...),
-#         profile_photo: bool = Form(...),
-#         file: UploadFile = File(...),
-#         db: Session = Depends(get_db),
-# ):
-#     # Find the existing user by userId
-#     existing_user = db.query(User).filter(User.userId == user_id).first()
-#     if not existing_user:
-#         raise HTTPException(status_code=404, detail="User not found")
-#
-#     file_path = f"profiles/{user_id}.jpg"
-#
-#     # Create users directory
-#     os.makedirs("profiles", exist_ok=True)
-#
-#     with open(file_path, "wb") as f:
-#         f.write(await file.read())
-#
-#     # Update only the profilePhoto boolean field
-#     existing_user.profilePhoto = profile_photo
-#
-#     db.commit()
-#     db.refresh(existing_user)
-#
-#     return {"message": "User profile photo updated successfully!"}
-
-
-logger = logging.getLogger("uvicorn")  # FastAPI typically runs on Uvicorn server
-# You can also configure logging level if needed
+# Configure logging
+logger = logging.getLogger("uvicorn")
 logging.basicConfig(level=logging.INFO)
 
+# Initialize InsightFace model
+insightface_app = FaceAnalysis(name='buffalo_l', root='./', providers=['CPUExecutionProvider'])
+insightface_app.prepare(ctx_id=0, det_size=(640, 640), det_thresh=0.5)
 
 @router.post("/face/profile")
 async def update_user_profile_photo(
-    user_id: str = Form(...),
-    profile_photo: bool = Form(...),
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
+        user_id: str = Form(...),
+        profile_photo: bool = Form(...),
+        file: UploadFile = File(...),
+        db: Session = Depends(get_db),
 ):
     logger.info(f"Received profile photo update request for user_id={user_id}")
 
@@ -97,7 +72,7 @@ async def update_user_profile_photo(
         raise HTTPException(status_code=400, detail="No face detected")
 
     # Crop the largest detected face with padding
-    x, y, w, h = sorted(faces, key=lambda rect: rect[2]*rect[3], reverse=True)[0]
+    x, y, w, h = sorted(faces, key=lambda rect: rect[2] * rect[3], reverse=True)[0]
     padding = 40
     x1 = max(x - padding, 0)
     y1 = max(y - padding, 0)
@@ -123,71 +98,115 @@ async def update_user_profile_photo(
 
     return FileResponse(profile_path, media_type="image/jpeg", filename=f"{user_id}_profile.jpg")
 
-# def variance_of_laplacian(image):
-#     return cv2.Laplacian(image, cv2.CV_64F).var()
 
-# @router.post("/face/enroll")
-# async def enroll_face(
-#     user_id: str = Form(...),
-#     file: UploadFile = File(...),
-#     db: Session = Depends(get_db),
-# ):
-#     # Read file to memory
-#     file_contents = await file.read()
-#     img_array = np.frombuffer(file_contents, np.uint8)
-#     img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-#     if img is None:
-#         raise HTTPException(status_code=400, detail="Invalid image file")
-#
-#     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-#
-#     cascade_path = "haarcascade_frontalface_default.xml"
-#     if not os.path.exists(cascade_path):
-#         raise HTTPException(status_code=500, detail="Haar cascade data not found")
-#     face_cascade = cv2.CascadeClassifier(cascade_path)
-#     faces = face_cascade.detectMultiScale(gray, 1.1, 4)
-#
-#     if len(faces) == 0:
-#         return JSONResponse(content={"enrolled": False, "clarity": 0.0, "message": "No face detected"})
-#
-#     # Pick largest face
-#     x, y, w, h = sorted(faces, key=lambda r: r[2]*r[3], reverse=True)[0]
-#     face_img = gray[y:y+h, x:x+w]
-#
-#     # Compute Laplacian variance (focus/blur detection)
-#     #blur_var = variance_of_laplacian(face_img)
-#
-#     # Normalize blur_var to percentage - empirical limits
-#     min_val, max_val = 50.0, 200.0  # tune thresholds based on testing
-#     #clarity_percent = max(0.0, min(100.0, (blur_var - min_val) / (max_val - min_val) * 100))
-#
-#     # Threshold to enroll
-#     enroll_threshold = 80.0
-#
-#     blur_var = variance_of_laplacian(face_img)
-#     enroll_threshold = 80  # Adjust based on testing
-#     if blur_var < enroll_threshold:
-#         return JSONResponse(content={
-#             "enrolled": False,
-#             "clarity": float(blur_var),
-#             "message": "Face detected but image quality is not good enough"
-#         })
-#     # if clarity_percent < enroll_threshold:
-#     #     return JSONResponse(content={
-#     #         "enrolled": False,
-#     #         "clarity": clarity_percent,
-#     #         "message": "Face detected but image quality is not good enough"
-#     #     })
-#
-#     # Save cropped face image for enrolled user
-#     os.makedirs("enrolled_faces", exist_ok=True)
-#     save_path = f"enrolled_faces/{user_id}.jpg"
-#     cv2.imwrite(save_path, img[y:y+h, x:x+w])
-#
-#     # Here you might add face encoding or registration in DB for real use case
-#
-#     return JSONResponse(content={
-#         "enrolled": True,
-#         "clarity": blur_var,
-#         "message": "Face enrolled successfully"
-#     })
+
+
+# %%
+
+
+
+def extract_face_embedding(file_bytes: bytes) -> np.ndarray:
+    # Load image from bytes
+    image = Image.open(BytesIO(file_bytes)).convert("RGB")
+    image_np = np.array(image)
+
+    # Detect faces
+    faces = insightface_app.get(image_np)
+    if not faces:
+        raise ValueError("No face detected in the image.")
+
+    # Take first detected face
+    embedding = faces[0].embedding
+    return embedding
+
+
+def extract_face_embedding_score(file_bytes: bytes) -> Tuple[np.ndarray, int]:
+    # Load image from bytes
+    image = Image.open(BytesIO(file_bytes)).convert("RGB")
+    image_np = np.array(image)
+
+    # Detect faces
+    faces = insightface_app.get(image_np)
+    if not faces:
+        raise ValueError("No face detected in the image.")
+
+    # Take first detected face
+    embedding = faces[0].embedding
+    score = int(round(float(faces[0].det_score) * 100))
+    return embedding, score
+
+
+@router.post("/face/enroll")
+async def enroll_face(
+        user_id: str = Form(...),
+        file: UploadFile = File(...),
+        db: Session = Depends(get_db),
+):
+    logger.info(f"Received enroll photo request for user_id={user_id}")
+    # Read uploaded file bytes
+    file_bytes = await file.read()
+    try:
+        embedding_vector, score = extract_face_embedding_score(file_bytes)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Find user
+    user = db.query(User).filter(User.userId == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Save embedding and mark face enrolled
+    user.face_embedding = embedding_vector.tolist()
+    user.face = True
+    db.commit()
+    db.refresh(user)
+
+    return {"enrolled": True, "score": score, "user_id": user_id, "message": "Face enrolled successfully"}
+
+
+def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
+    """Compute cosine similarity between two vectors"""
+    a = np.array(a)
+    b = np.array(b)
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
+
+@router.post("/face/recognize")
+async def recognize_face(
+        file: UploadFile = File(...),
+        db: Session = Depends(get_db),
+):
+    file_bytes = await file.read()
+    try:
+        embedding_vector = extract_face_embedding(file_bytes)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Fetch all users with enrolled faces
+    users = db.query(User).filter(User.face == True, User.face_embedding != None).all()
+    if not users:
+        raise HTTPException(status_code=404, detail="No enrolled users found.")
+
+    # Find best match
+    best_match = None
+    highest_similarity = -1
+    for user in users:
+        sim = cosine_similarity(embedding_vector, np.array(user.face_embedding))
+        if sim > highest_similarity:
+            highest_similarity = sim
+            best_match = user
+
+    # similarity = int(round(float(highest_similarity * 100)))
+    similarity = int(round(float(highest_similarity * 100)))
+    logger.info(f"similarity: {similarity}")
+    # Threshold for recognizing a face (tune as needed)
+    THRESHOLD = 0.5
+    if highest_similarity < THRESHOLD:
+        return {"recognized": False, "message": "No matching face found", "similarity": similarity}
+
+    return {
+        "recognized": True,
+        "userId": best_match.userId,
+        "name": best_match.name,
+        "similarity": similarity
+    }

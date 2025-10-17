@@ -1,12 +1,23 @@
-import React, {useState} from 'react';
-import {Alert, Button, StyleSheet, Switch, Text, TextInput, View} from 'react-native';
+import React, {useCallback, useEffect, useState} from 'react';
+import {
+    Alert,
+    Button,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TextInput,
+    View,
+} from 'react-native';
 import Header from "@/components/Header";
 import {Picker} from '@react-native-picker/picker';
-import {router} from "expo-router";
 import {BACKEND_URL} from "@/constants/Api";
 
 export default function NewUserFormScreen() {
-    const [userId, setUserId] = useState('1');
+
+    const [userId, setUserId] = useState('');
     const [name, setName] = useState('');
     const [role, setRole] = useState('Normal User');
     const [fingerprint, setFingerprint] = useState(false);
@@ -16,58 +27,29 @@ export default function NewUserFormScreen() {
     const [profilePhoto, setProfilePhoto] = useState(false);
     const [accessControlRole, setAccessControlRole] = useState('');
 
-    const takeProfilePhoto = () => {
-        if (!profilePhoto) {
-            router.push({
-                pathname: "/face-profile-screen", params: {uId: String(userId)},
-            });
-        }
-    }
-
-    const testApi = async () => {
-
+    const fetchLatestUserId = useCallback(async () => {
         try {
-            const response = await fetch(BACKEND_URL);
-            const result = await response.json();
-            console.log('API response:', result);
-        } catch (error) {
-            console.error('Error testing API:', error);
-        }
-    };
-
-    const addUser2 = async () => {
-        const formData = new FormData();
-        formData.append('userId', userId);
-        formData.append('name', name);
-        formData.append('role', role);
-        formData.append('fingerprint', fingerprint ? 'true' : 'false');
-        formData.append('face', face ? 'true' : 'false');
-        formData.append('card', card ? 'true' : 'false');
-        formData.append('password', password);
-        formData.append('profilePhoto', profilePhoto ? 'true' : 'false');
-        formData.append('accessControlRole', accessControlRole);
-
-
-        try {
-
-            const response = await fetch(BACKEND_URL + "/addUser", {
-                method: 'POST',
-                body: formData,
+            const res = await fetch(`${BACKEND_URL}/users/latest-id`, {
+                headers: {Accept: 'application/json'},
             });
-            console.log(response);
-
-            if (response.ok) {
-                Alert.alert('Success', 'User added successfully');
-                // Optionally navigate away or reset form
-            } else {
-                const errorData = await response.json();
-                Alert.alert('Error1', errorData.message || 'Failed to add user');
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
             }
-        } catch (error: any) {
-            console.log(error);
-            Alert.alert('Error2', error.message);
+            const data = await res.json(); // expect { latestUserId: number }
+            if (data?.latestUserId != null) {
+                setUserId(String(parseInt(data.latestUserId) + 1 )); // update your state here
+            } else {
+                throw new Error('Malformed response');
+            }
+        } catch (e: any) {
+            console.log(e.message ?? 'Request failed');
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchLatestUserId(); // fetch on mount
+    }, [fetchLatestUserId]);
+
 
     const addUser = async () => {
         const userData = {
@@ -77,9 +59,7 @@ export default function NewUserFormScreen() {
 
         try {
             const response = await fetch(BACKEND_URL + "/addUser", {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(userData),
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(userData),
             });
             const responseData = await response.json();
             if (!response.ok) {
@@ -94,144 +74,122 @@ export default function NewUserFormScreen() {
         }
     };
 
-    const addUser1 = async () => {
-        const formData = new FormData();
-        formData.append('userId', userId);
-        formData.append('name', name);
-        formData.append('role', role);
-        formData.append('fingerprint', fingerprint ? 'true' : 'false');
-        formData.append('face', face ? 'true' : 'false');
-        formData.append('card', card ? 'true' : 'false');
-        formData.append('password', password);
-        formData.append('profilePhoto', profilePhoto ? 'true' : 'false');
-        formData.append('accessControlRole', accessControlRole);
 
-        try {
-            const response = await fetch(BACKEND_URL + "/addUser", {
-                method: 'POST',
-                body: formData,
-            });
+    return (<KeyboardAvoidingView
+        style={{flex: 1}}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0} // adjust if you have a fixed header
+    >
+        <ScrollView
+            style={{flex: 1}}
+            contentContainerStyle={{padding: 16, paddingBottom: 32}}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator
+        >
+            <View style={styles.container}>
+                <Header title="New User"/>
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.log("Validation errors:", errorData);
-                Alert.alert('Validation Error', JSON.stringify(errorData));
-            } else {
-                Alert.alert('Success', 'User added successfully');
-            }
-        } catch (error : any) {
-            Alert.alert('Error', error.message);
-        }
-    };
+                {/* User ID */}
+                <View style={styles.row}>
+                    <Text style={styles.cellLabel}>User ID</Text>
+                    <TextInput
+                        style={styles.inputValue}
+                        value={userId}
+                        onChangeText={setUserId}
+                        returnKeyType="next"
+                    />
+                </View>
+                <View style={styles.divider}/>
 
+                {/* Name */}
+                <View style={styles.row}>
+                    <Text style={styles.cellLabel}>Name</Text>
+                    <TextInput
+                        style={styles.inputValue}
+                        value={name}
+                        onChangeText={setName}
+                        returnKeyType="next"
+                    />
+                </View>
+                <View style={styles.divider}/>
 
-    return (<View style={styles.container}>
-            <Header title="New User"/>
-            {/* User ID */}
-            <View style={styles.row}>
-                <Text style={styles.cellLabel}>User ID</Text>
-                <TextInput
-                    style={styles.inputValue}
-                    value={userId}
-                    onChangeText={setUserId}
-                />
+                {/* User Role */}
+                <View style={styles.row}>
+                    <Text style={styles.cellLabel}>User Role</Text>
+                    <Picker
+                        style={styles.pickerValue}
+                        selectedValue={role}
+                        onValueChange={setRole}
+                    >
+                        <Picker.Item label="Normal User" value="Normal User"/>
+                        <Picker.Item label="Admin" value="Admin"/>
+                    </Picker>
+                </View>
+                <View style={styles.divider}/>
+
+                {/* Fingerprint */}
+                <View style={styles.row}>
+                    <Text style={styles.cellLabel}>Fingerprint</Text>
+                    <Switch value={fingerprint} onValueChange={setFingerprint}/>
+                </View>
+                <View style={styles.divider}/>
+
+                {/* Face */}
+                <View style={styles.row}>
+                    <Text style={styles.cellLabel}>Face</Text>
+                    <Switch value={face} onValueChange={setFace}/>
+                </View>
+                <View style={styles.divider}/>
+
+                {/* Card */}
+                <View style={styles.row}>
+                    <Text style={styles.cellLabel}>Card</Text>
+                    <Switch value={card} onValueChange={setCard}/>
+                </View>
+                <View style={styles.divider}/>
+
+                {/* Password */}
+                <View style={styles.row}>
+                    <Text style={styles.cellLabel}>Password</Text>
+                    <TextInput
+                        style={styles.inputValue}
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry
+                        returnKeyType="done"
+                    />
+                </View>
+                <View style={styles.divider}/>
+
+                {/* Profile Photo */}
+                <View style={styles.row}>
+                    <Text style={styles.cellLabel}>Profile Photo</Text>
+                    <Switch
+                        value={profilePhoto}
+                        onValueChange={setProfilePhoto}
+                        // onChange={takeProfilePhoto} // prefer onValueChange for Switch
+                    />
+                </View>
+                <View style={styles.divider}/>
+
+                {/* Access Control Role */}
+                <View style={styles.row}>
+                    <Text style={styles.cellLabel}>Access Control Role</Text>
+                    <TextInput
+                        style={styles.inputValue}
+                        value={accessControlRole}
+                        onChangeText={setAccessControlRole}
+                    />
+                </View>
+                <View style={styles.divider}/>
+
+                {/* Add User Button */}
+                <View style={{margin: 20}}>
+                    <Button title="Add User" onPress={addUser}/>
+                </View>
             </View>
-            <View style={styles.divider}/>
-
-            {/* Name */}
-            <View style={styles.row}>
-                <Text style={styles.cellLabel}>Name</Text>
-                <TextInput
-                    style={styles.inputValue}
-                    value={name}
-                    onChangeText={setName}
-                />
-            </View>
-            <View style={styles.divider}/>
-
-            {/* User Role */}
-            <View style={styles.row}>
-                <Text style={styles.cellLabel}>User Role</Text>
-                <Picker
-                    style={styles.pickerValue}
-                    selectedValue={role}
-                    onValueChange={setRole}
-                >
-                    <Picker.Item label="Normal User" value="Normal User"/>
-                    <Picker.Item label="Admin" value="Admin"/>
-                </Picker>
-            </View>
-            <View style={styles.divider}/>
-
-            {/* Fingerprint */}
-            <View style={styles.row}>
-                <Text style={styles.cellLabel}>Fingerprint</Text>
-                <Switch
-                    value={fingerprint}
-                    onValueChange={setFingerprint}
-                />
-            </View>
-            <View style={styles.divider}/>
-
-            {/* Face */}
-            <View style={styles.row}>
-                <Text style={styles.cellLabel}>Face</Text>
-                <Switch
-                    value={face}
-                    onValueChange={setFace}
-                />
-            </View>
-            <View style={styles.divider}/>
-
-            {/* Card */}
-            <View style={styles.row}>
-                <Text style={styles.cellLabel}>Card</Text>
-                <Switch
-                    value={card}
-                    onValueChange={setCard}
-                />
-            </View>
-            <View style={styles.divider}/>
-
-            {/* Password */}
-            <View style={styles.row}>
-                <Text style={styles.cellLabel}>Password</Text>
-                <TextInput
-                    style={styles.inputValue}
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                />
-            </View>
-            <View style={styles.divider}/>
-
-            {/* Profile Photo */}
-            <View style={styles.row}>
-                <Text style={styles.cellLabel}>Profile Photo</Text>
-                <Switch
-                    value={profilePhoto}
-                    onValueChange={setProfilePhoto}
-                    onChange={takeProfilePhoto}
-                />
-            </View>
-            <View style={styles.divider}/>
-
-            {/* Access Control Role */}
-            <View style={styles.row}>
-                <Text style={styles.cellLabel}>Access Control Role</Text>
-                <TextInput
-                    style={styles.inputValue}
-                    value={accessControlRole}
-                    onChangeText={setAccessControlRole}
-                />
-            </View>
-            <View style={styles.divider}/>
-
-            {/* Add User Button */}
-            <View style={{margin: 20}}>
-                <Button title="Add User" onPress={addUser}/>
-            </View>
-        </View>);
+        </ScrollView>
+    </KeyboardAvoidingView>);
 }
 
 const styles = StyleSheet.create({
